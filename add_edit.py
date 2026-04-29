@@ -1,7 +1,7 @@
 import tkinter as tk
 
 class StudentAddEditPage:
-    def _init_(self, root, student_page_instance, mode="add", index=None):
+    def __init__(self, root, student_page_instance, mode="add", index=None):
         self.root = root
         self.student_page = student_page_instance
         self.mode = mode
@@ -82,3 +82,100 @@ class StudentAddEditPage:
                  bg="#1e293b", fg="white",
                  font=("Arial", 12, "bold"),
                  command=self.save).pack(pady=30, ipadx=20, ipady=10)
+        
+        # ================= EDIT LOAD =================
+        if mode == "edit":
+            s = self.student_page.students[index]
+            self.name.insert(0, s["name"])
+            self.year.insert(0, s["year"])
+            self.birth.insert(0, s["birth"])
+            self.subjects = s.get("subjects", [])
+            self.refresh_subjects()
+
+    def back(self):
+        self.frame.destroy()
+        self.student_page.frame.pack(fill="both", expand=True)
+
+    def validate_numeric(self, P):
+        return P == "" or P.isdigit()
+
+    def focus_next(self, event):
+        event.widget.tk_focusNext().focus()
+        return "break"
+
+    def add_subject(self):
+        name = self.sub_name.get().strip()
+        score = self.sub_score.get().strip()
+
+        if not name or not score:
+            return
+
+        try:
+            score_val = int(score)
+            if score_val < 0 or score_val > 100:
+                self.student_page.app.toast("Score must be between 0 and 100 ⚠️")
+                return
+                
+            self.subjects.append({
+                "name": name,
+                "score": score_val
+            })
+        except ValueError:
+            self.student_page.app.toast("Please enter a valid number for score ❌")
+            return
+
+        self.refresh_subjects()
+
+        self.sub_name.delete(0, "end")
+        self.sub_score.delete(0, "end")
+
+    def edit_selected_subject(self):
+        selection = self.list.curselection()
+        if not selection:
+            return
+
+        index = selection[0]
+        subject = self.subjects.pop(index)
+
+        self.sub_name.delete(0, "end")
+        self.sub_name.insert(0, subject["name"])
+        self.sub_score.delete(0, "end")
+        self.sub_score.insert(0, str(subject["score"]))
+
+        self.refresh_subjects()
+
+    def delete_selected_subject(self):
+        selection = self.list.curselection()
+        if selection:
+            self.subjects.pop(selection[0])
+            self.refresh_subjects()
+
+    def refresh_subjects(self):
+        self.list.delete(0, "end")
+        for s in self.subjects:
+            self.list.insert("end", f"{s['name']} - {s['score']}")
+
+    def save(self):
+        name = self.name.get().strip()
+        year = self.year.get().strip()
+        birth = self.birth.get().strip()
+
+        if not name or not year or not birth:
+            self.student_page.app.toast("Please fill all basic information ❌")
+            return
+        student = {
+           "name": name,
+            "year": year,
+            "birth": birth,
+            "subjects": self.subjects
+        }
+
+        if self.mode == "add":
+            self.student_page.students.append(student)
+        else:
+            self.student_page.students[self.index] = student
+
+        self.student_page.save()
+        self.student_page.refresh()
+        self.back()
+        # rgthj
